@@ -275,7 +275,7 @@ print(f"\n===== Grid Search Done: Best validation accuracy = {best_acc:.4f}, ens
 # ---------- テストデータでアンサンブル予測 ----------
 ensemble_preds = []
 for state in best_models:
-    m = MLP(in_dim, list(state['bn.gamma'].shape)[0], out_dim).to(device)
+    m = DeepMLP(in_dim, list(state['bn.gamma'].shape)[0], out_dim).to(device)
     m.load_state_dict(state)
     m.eval()
     ensemble_preds.append(m)
