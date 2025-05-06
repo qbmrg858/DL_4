@@ -1,0 +1,6 @@
+*.pth
+*.npy
+*.txt
+data/
+*ubyte*
+*.csv
