@@ -121,6 +121,18 @@ def softmax(x):
     exp_x = torch.exp(x - x_max)
     return exp_x / exp_x.sum(dim=1, keepdim=True)
 
+class Dropout(nn.Module):
+    def __init__(self, p=0.3):
+        super().__init__()
+        self.p = p
+
+    def forward(self, x):
+        if self.training:
+            # keep_prob = 1‑p、mask で無効化
+            mask = (torch.rand_like(x) > self.p).float()
+            return mask * x / (1 - self.p)
+        return x
+
 class Dense(nn.Module):
     def __init__(self, in_dim, out_dim):
         super().__init__()
@@ -143,21 +155,33 @@ class MLP(nn.Module):
         y = softmax(self.l2(h))
         return y
 
+class DeepMLP(nn.Module):
+    def __init__(self, in_dim, hid1, hid2, hid3, out_dim, p_drop=0.3):
+        super().__init__()
 
-# ---------- ハイパーパラメータグリッドサーチ & アンサンブル用トレーニング ----------
-in_dim   = 784
-out_dim  = 10
-n_epochs = 20
-patience = 3
+        self.fc1 = Dense(in_dim, hid1)
+        self.bn1 = BatchNorm1d(hid1)
+        self.do1 = Dropout(p_drop)
 
-param_grid = {
-    'hid_dim': [200, 300],
-    'lr': [1e-3, 5e-4]
-}
+        self.fc2 = Dense(hid1, hid2)
+        self.bn2 = BatchNorm1d(hid2)
+        self.do2 = Dropout(p_drop)
 
-best_models = []
-best_acc = 0.0
-import math
+        self.fc3 = Dense(hid2, hid3)
+        self.bn3 = BatchNorm1d(hid3)
+        self.do3 = Dropout(p_drop)
+
+        self.fc4 = Dense(hid3, out_dim)
+
+    def forward(self, x):
+        x = relu(self.bn1(self.fc1(x)))
+        x = self.do1(x)
+        x = relu(self.bn2(self.fc2(x)))
+        x = self.do2(x)
+        x = relu(self.bn3(self.fc3(x)))
+        x = self.do3(x)
+        y = softmax(self.fc4(x))
+        return y
 
 # ---------- ハイパーパラメータグリッドサーチ & アンサンブル用トレーニング ----------
 in_dim   = 784
@@ -178,7 +202,16 @@ print("===== Grid Search Start =====")
 for hid in param_grid['hid_dim']:
     for lr0 in param_grid['lr']:
         print(f"\n>> Config: hid_dim={hid}, lr={lr0}")
-        model = MLP(in_dim, hid, out_dim).to(device)
+        # model = MLP(in_dim, hid, out_dim).to(device)
+        model = DeepMLP(
+            in_dim=in_dim,
+            hid1=512,
+            hid2=512,
+            hid3=256,
+            out_dim=out_dim,
+            p_drop=0.3
+        ).to(device)
+
         opt   = optim.Adam(model.parameters(), lr=lr0)
 
         best_val_acc = 0.0
