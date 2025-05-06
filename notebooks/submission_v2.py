@@ -124,7 +124,8 @@ def softmax(x):
 class Dense(nn.Module):
     def __init__(self, in_dim, out_dim):
         super().__init__()
-        self.W = nn.Parameter(torch.randn(in_dim, out_dim) * 0.01)
+        # self.W = nn.Parameter(torch.randn(in_dim, out_dim) * 0.01)
+        self.W = nn.Parameter(torch.randn(in_dim, out_dim) * (2 / in_dim) ** 0.5)  # ←He 初期化
         self.b = nn.Parameter(torch.zeros(out_dim))
 
     def forward(self, x):
